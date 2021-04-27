@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<templates>
+    <device name="RB3 Vanilla">
+        <send>KernelSendCANMsg_type1(k_CAN1, _id, _dlc, _data);</send>
+        <delay>KernelDelay(_msec);</delay>
+    </device>
+    <device name="RB4">
+        <send>bb_kapi_can_msg_send(_id, _dlc, _data);</send>
+        <delay>DelayMS(_msec);</delay>
+    </device>
+    <device name="REM3 CAN1">
+        <send>CANApp_SendStd_Data_dlc(CANAPP_CAN1, _id, _data);</send>    
+        <delay>vTaskDelay(TICKS_FROM_MILLISECONDS(_msec));</delay>
+    </device>
+</templates>
