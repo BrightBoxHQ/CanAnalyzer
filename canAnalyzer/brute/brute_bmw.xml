@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+Brute forcer template for BMW protocol
+-->
+
+<brute_template>
+    <!-- header -->
+	<header>
+        <name>BMW</name>
+    </header>
+	
+    <!-- common settings -->
+	<settings>
+		<timeout> 1000 </timeout>
+        <delay> 25 </delay>
+        <can_29> 0 </can_29>   
+        <attempts> 2 </attempts> 
+	</settings>
+
+    <!-- request format -->
+	<request>
+		<id>0x6F1</id>
+        <dlc>5</dlc>
+        <data> 0x60, 0x03, 0x22, X>>8, X </data>
+	</request>
+    
+    <!-- flow control format -->
+	<flow>
+        <dlc> 3 </dlc>
+        <data> 0x30, 0, 0 </data>
+	</flow>
+    
+    <!-- response format -->
+    <response>
+		<id>Req[0] + 0x600</id>
+        <data> 0xF1, Hdr, Hdr, 0x62, X>>8, X</data>
+        <header_pos>1</header_pos>
+	</response>
+    
+</brute_template>

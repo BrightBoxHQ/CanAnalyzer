@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+Brute forcer template for CAN UDS protocol
+-->
+
+<brute_template>
+    <!-- header -->
+	<header>
+        <name>UDS_11_21svc</name>
+    </header>
+	
+    <!-- common settings -->
+	<settings>
+		<timeout> 250 </timeout>
+        <delay> 25 </delay>
+        <can_29> 0 </can_29>   
+        <attempts> 2 </attempts> 
+	</settings>
+
+    <!-- request format -->
+	<request>
+		<id>0x7E0</id>
+        <dlc>8</dlc>
+        <data> 0x02, 0x21, X</data>
+	</request>
+    
+    <!-- flow control format -->
+	<flow>
+        <dlc> 8 </dlc>
+        <data> 0x30 </data>
+	</flow>
+    
+    <!-- response format -->
+    <response>
+		<id>Req_id + 8</id>
+        <data> Hdr, Hdr, 0x61, X</data>
+        <header_pos>0</header_pos>
+	</response>
+    
+</brute_template>
