@@ -77,7 +77,8 @@ namespace canAnalyzer
 
         #region methods_access
 
-        private bool req_tx_err_cnt = true;
+        private int req_err_cnt_step = 0;
+        readonly private int req_err_cnt_step_max = 2; // rx, tx, reset
 
         public void errorsRefresh()
         {
@@ -86,24 +87,34 @@ namespace canAnalyzer
                 // make sure we handled the previous request
                 if (m_parser.RawRegesterReq == canParser.CanRegisterReq.none)
                 {
-                    // request tx error counter
-                    if (req_tx_err_cnt)
+                    if (req_err_cnt_step == 0)
                     {
+                        // request the tx error counter
                         m_parser.RawRegesterReq = canParser.CanRegisterReq.tx_error_counter;
                         txQueue.Add("G0F");     // reg addr = 15
-                    } else
-                    {
+                    }
+                    else if (req_err_cnt_step == 1) {
+                        // request the rx error counter
                         m_parser.RawRegesterReq = canParser.CanRegisterReq.rx_error_counter;
                         txQueue.Add("G0E");     // reg addr = 14
                     }
+                    else if (req_err_cnt_step == 2)
+                    {
+                        // request the CAN reset status
+                        m_parser.RawRegesterReq = canParser.CanRegisterReq.can_reset_flag;
+                        txQueue.Add("G00");     // reg addr = 0
+                    }
 
-                    req_tx_err_cnt = !req_tx_err_cnt;
+                    req_err_cnt_step += 1;
+                    if (req_err_cnt_step > req_err_cnt_step_max)
+                        req_err_cnt_step = 0;
                 }
 
-                txQueue.Add("F");       // erorrs
+                // txQueue.Add("F");       // erorrs
             } else
             {
                 m_parser.RawRegesterReq = canParser.CanRegisterReq.none;
+                req_err_cnt_step = 0;
             }
         }
 

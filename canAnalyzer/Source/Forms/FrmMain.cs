@@ -100,6 +100,7 @@ namespace canAnalyzer
             m_statusTool.setSpeed(connSettings.CanSpeed);
             m_statusTool.setSilentMode(connSettings.IsSilent);
             m_statusTool.setAutosaveTrace(connSettings.IsTraceAutoSave);
+            m_statusTool.showBusErrors(AppSettings.LoadCanBusErrorMonitorConfig());
 
             menuStrip.BackColor = System.Drawing.SystemColors.ActiveCaption;
 
@@ -758,6 +759,8 @@ namespace canAnalyzer
 
             bool cleaning = false;
             bool was_connected = false;
+            bool read_can_errors = AppSettings.LoadCanBusErrorMonitorConfig();
+            long can_errors_ts = 0;
 
             // work until the flag is set
             while (!m_new_can_worker_stop_req && !this.Disposing)
@@ -860,7 +863,13 @@ namespace canAnalyzer
                 if (m_queueMsgs.Count == 0)
                     m_worker.waitHandle.WaitOne(500);
 
-                m_worker.errorsRefresh();
+                // CAN errors, read no more than once every 450ms
+                if (read_can_errors && can_errors_ts < DateTimeOffset.Now.ToUnixTimeMilliseconds())
+                {
+                    m_worker.errorsRefresh();
+                    can_errors_ts = DateTimeOffset.Now.ToUnixTimeMilliseconds() + 450;
+                }
+                    
 
                 //test();
             }
@@ -1368,6 +1377,12 @@ namespace canAnalyzer
             setReceivedMsgCount(0);
         }
 
+        // should we show bus errors?
+        public void showBusErrors(bool show)
+        {
+            m_canErrors.Visible = show;
+        }
+
         // set a selected COM port name
         public void setPort (string port)
         {
@@ -1490,9 +1505,11 @@ namespace canAnalyzer
                 return;
             bool bus_off = err.isBusOff();
 
-            string str_val = string.Format("{0}Err: Tx {1}, Rx {2}, Bus {3}",
+            string str_val = string.Format("{0}Err: Tx {1}, Rx {2}, Reset={3}",
                 bus_off ? "Bus-Off! " : "",
-                err.tx_err_cnt, err.rx_error_cnt, err.bus_error_cnt);
+                err.GetErrorCounterTX(), 
+                err.GetErrorCounterRX(),
+                err.GetCanResetStatus() == true ? 1 : 0);
 
             // check
             if (str_val != m_str_prev_maskFilter)
@@ -1677,6 +1694,24 @@ namespace canAnalyzer
             }
             int res = Convert.ToInt32(num);
             return res == 0 ? Convert.ToInt32(default_num) : res;
+        }
+
+        // Should we monitor errors on the CAN bus
+        static public bool LoadCanBusErrorMonitorConfig()
+        {
+            const string path = "canBusErrorMonitor";
+            const string default_num = "1";
+            string num = ConfigurationManager.AppSettings.Get(path);
+            if (num == null)
+            {
+                Configuration currentConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                currentConfig.AppSettings.Settings.Add(path, default_num);
+                currentConfig.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
+                num = default_num;
+            }
+
+            return Convert.ToInt32(num) == 0 ? false : true;
         }
 
         // remoto

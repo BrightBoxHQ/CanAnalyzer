@@ -522,6 +522,7 @@ namespace canAnalyzer
             none,
             tx_error_counter,
             rx_error_counter,
+            can_reset_flag
         };
         public CanRegisterReq RawRegesterReq = CanRegisterReq.none;
 
@@ -533,10 +534,13 @@ namespace canAnalyzer
             // check what data are we looking for
             switch (RawRegesterReq) {
                 case CanRegisterReq.tx_error_counter:
-                    canErrors.tx_err_cnt = value;
+                    canErrors.SetErrorCounterTX(value);
                     break;
                 case CanRegisterReq.rx_error_counter:
-                    canErrors.rx_error_cnt = value;
+                    canErrors.SetErrorCounterRX(value);
+                    break;
+                case CanRegisterReq.can_reset_flag:
+                    canErrors.SetCanResetStatus((value & 0x01) > 0 ? true : false);
                     break;
                 default:
                     break;
@@ -592,9 +596,46 @@ namespace canAnalyzer
         public int bus_error_cnt = 0;
 
         // sja1000 error counters
-        public int rx_error_cnt = 0;
-        public int tx_err_cnt = 0;
+        private int rx_error_cnt = 0;
+        private int tx_err_cnt = 0;
 
+        // control flags (Mode reg)
+        private bool can_reset_flag = false;
+
+        // get the current value
+        public int GetErrorCounterTX()
+        {
+            return tx_err_cnt;
+        }
+        // update the value
+        public void SetErrorCounterTX(int val)
+        {
+            tx_err_cnt = val;
+        }
+
+        // get the current value
+        public int GetErrorCounterRX()
+        {
+            return rx_error_cnt;
+        }
+        // update the value
+        public void SetErrorCounterRX(int val)
+        {
+            rx_error_cnt = val;
+        }
+
+        // get the current value
+        public bool GetCanResetStatus()
+        {
+            return can_reset_flag;
+        }
+        // update the value
+        public void SetCanResetStatus(bool val)
+        {
+            can_reset_flag = val;
+        }
+
+        // clean all the data
         public void clean()
         {
             err_warn_cnt = 0;
@@ -605,8 +646,10 @@ namespace canAnalyzer
 
             rx_error_cnt = 0;
             tx_err_cnt = 0;
+            can_reset_flag = false;
         }
 
+        // is empty
         public bool empty()
         {
             return err_warn_cnt > 0 ||
@@ -615,12 +658,22 @@ namespace canAnalyzer
                     arbitration_lost_cnt > 0 ||
                     bus_error_cnt > 0 ||
                     rx_error_cnt > 0 ||
-                    tx_err_cnt > 0;
+                    tx_err_cnt > 0 ||
+                    can_reset_flag == true;
         }
 
+        // is bus-off?
         public bool isBusOff()
         {
-            return rx_error_cnt == 0 && tx_err_cnt == 127;
+            /* Bus-Off:
+               Reset Request bit = 1
+               Tx Error Counter = 127
+               Rx Error Counter = 0
+            */
+            return rx_error_cnt == 0 &&
+                   tx_err_cnt == 127 &&
+                   can_reset_flag == true;
+
         }
     };
 }
