@@ -401,8 +401,12 @@ namespace canAnalyzer
 
             AppSettings.SaveConnSettings(connSettings);
 
+            // controls
             if (res)
+            {
+                ucReadTrace.setCanSpeed(connSettings.CanSpeed);
                 ucSendGrid.onConnect();
+            }
 
             return res;
         }

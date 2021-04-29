@@ -45,7 +45,7 @@ namespace canAnalyzer
         private long storage_ts = 0;
         private string storage_file_path = string.Empty;
         private string storage_file_name = string.Empty;
-
+        private string can_speed = string.Empty;
 
         #endregion
 
@@ -304,6 +304,11 @@ namespace canAnalyzer
             lockMutex.ReleaseMutex();
         }
 
+        // set the CAN speed value
+        public void setCanSpeed(string speed)
+        {
+            can_speed = speed;
+        }
 
         #region data_save
 
@@ -343,11 +348,18 @@ namespace canAnalyzer
                 // check the conditions
                 if (storage_msg_list.Count >= save_threshold || now_ts >= storage_ts || force)
                 {
+                    bool file_just_created = false;
+
                     if (string.IsNullOrEmpty(storage_file_path))
+                    {
                         storage_file_path = string.Format("{0}\\trace\\",
                             System.IO.Path.GetDirectoryName(Application.ExecutablePath));
+                    }
                     if (string.IsNullOrEmpty(storage_file_name))
+                    {
                         storage_file_name = string.Format("trace_{0:yyyy_MM_dd_HH_mm_ss}.ctd", now);
+                        file_just_created = true;
+                    }
                     
                     // make sure the dir exists
                     if (!Directory.Exists(storage_file_path))
@@ -363,6 +375,16 @@ namespace canAnalyzer
                             // store
                             using (var stream = new FileStream(storage_file_path + storage_file_name, FileMode.Append))
                             {
+                                // append the title string
+                                if (file_just_created)
+                                {
+                                    string title = string.Format(
+                                        "User: {0}\nCAN Speed: {1}\n",
+                                        Environment.UserName, can_speed);
+                                    var buff = Encoding.ASCII.GetBytes(title + Environment.NewLine);
+                                    stream.Write(buff, 0, buff.Length);
+                                }
+                                // data
                                 stream.Write(comp, 0, comp.Length);
                             }
                         }
