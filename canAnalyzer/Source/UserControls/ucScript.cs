@@ -607,6 +607,9 @@ namespace canAnalyzer
                     has_any_read_command = true;
             }
 
+            // do not restart the script in case of TX issues
+            bool sendError = false;
+
 start_goto_pos:
 
             // clear the list
@@ -674,6 +677,7 @@ start_goto_pos:
                     if (!sent)
                     {
                         trace("Error. The message cannot be sent. Aborted", Color.Red);
+                        sendError = true;
                         break;
                     }
                 }
@@ -823,6 +827,7 @@ start_goto_pos:
                     if (!sent)
                     {
                         trace("Error. The message cannot be sent. Aborted", Color.Red);
+                        sendError = true;
                         break;
                     }
 
@@ -936,7 +941,7 @@ start_goto_pos:
             traceFlush();
 
             // restart
-            if (!workerStopRequest && isAutoRestartEnabled())
+            if (!workerStopRequest && !sendError && isAutoRestartEnabled())
             {
                 if (!has_any_read_command && delay_msec_total < delay_msec_total_min)
                 {
