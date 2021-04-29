@@ -906,23 +906,46 @@ namespace canAnalyzer
                 Debug.Assert(SelfTestCompareLists(getResponse(), expected));
                 Debug.Assert(!IsTimeoutExpired());
             }
-            // test: parse signle message (to make sure std request works after a BMW request
+
+            // test: too short single-frame message
             {
                 canMessage2 req = new canMessage2(0x7E0, false, new byte[] { 0x01, 0x00 });
                 canMessageId resp_id = new canMessageId(0x7E8, 1, false);
-                List<byte> expected = new List<byte> { 0x41, 0x00, 0x10, 0x20, 0x30, 0x40 };
+                List<byte> expected = new List<byte> { 0x41, 0x00, 0x10, 0x20, 0x30 };
 
                 List<canMessage2> resp = new List<canMessage2>();
-                resp.Add(new canMessage2(0x7E8, false, new byte[] { 0x06, 0x41, 0x00, 0x10, 0x20, 0x30, 0x40 }));
+                resp.Add(new canMessage2(0x7E8, false, new byte[] { 0x06, 0x41, 0x00, 0x10, 0x20, 0x30 }));
 
                 Debug.Assert(sendRequest(null, req, resp_id) == ErrorCode.Ok);
                 handleMessages(resp);
-                Debug.Assert(m_finished);
+                Debug.Assert(!m_finished);
                 Debug.Assert(m_gotAtLeastOneResponse);
                 Debug.Assert(m_expected_len == 6);
                 Debug.Assert(m_flow_sent == false);
                 Debug.Assert(SelfTestCompareLists(getResponse(), expected));
                 Debug.Assert(!IsTimeoutExpired());
+            }
+
+            // test: too short multiframe message
+            {
+                canMessage2 req = new canMessage2(0x7E0, false, new byte[] { 0x22, 0xF1, 0x90 });
+                canMessageId resp_id = new canMessageId(0x7E8, 1, false);
+                List<byte> expected = new List<byte> { 0x62, 0xF1, 0x90 };
+                for (byte i = 0; i < 15; i++)
+                    expected.Add(i);
+
+                List<canMessage2> resp = new List<canMessage2>();
+                resp.Add(new canMessage2(0x7E8, false, new byte[] { 0x10, 17 + 3, 0x62, 0xF1, 0x90, 0, 1, 2 }));
+                resp.Add(new canMessage2(0x7E8, false, new byte[] { 0x21, 3, 4, 5, 6, 7, 8, 9 }));
+                resp.Add(new canMessage2(0x7E8, false, new byte[] { 0x22, 10, 11, 12, 13, 14 }));
+
+                Debug.Assert(sendRequest(null, req, resp_id) == ErrorCode.Ok);
+                handleMessages(resp);
+                Debug.Assert(!m_finished);
+                Debug.Assert(m_gotAtLeastOneResponse);
+                Debug.Assert(m_expected_len == 20);
+                Debug.Assert(m_flow_sent == true);
+                Debug.Assert(SelfTestCompareLists(getResponse(), expected));
             }
 
             m_self_test = false;
